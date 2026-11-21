@@ -49,11 +49,13 @@ export default function DailyShutdownModal({ isOpen, onClose }) {
     })
     showToast(`Rolled over ${pendingToday.length} tasks to tomorrow`, { type: 'info' })
     setStep(3)
+    playCelebrate()
     triggerConfetti()
   }
 
   const handleLeaveInInbox = () => {
     setStep(3)
+    playCelebrate()
     triggerConfetti()
   }
 

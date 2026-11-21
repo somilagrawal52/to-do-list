@@ -80,6 +80,7 @@ export const generateSampleTasks = () => {
       tags: ['Fitness', 'Cardio'],
       status: 'completed',
       isPinned: false,
+      energyLevel: 'low',
       estimatedPomodoros: 1,
       completedPomodoros: 1,
       subtasks: [
@@ -102,6 +103,7 @@ export const generateSampleTasks = () => {
       tags: ['Accounting', 'Tax'],
       status: 'todo',
       isPinned: false,
+      energyLevel: 'low',
       estimatedPomodoros: 2,
       completedPomodoros: 0,
       subtasks: [
@@ -125,6 +127,7 @@ export const generateSampleTasks = () => {
       tags: ['Books', 'SelfImprovement'],
       status: 'todo',
       isPinned: false,
+      energyLevel: 'low',
       estimatedPomodoros: 2,
       completedPomodoros: 0,
       subtasks: []
@@ -166,6 +169,7 @@ export const generateSampleTasks = () => {
       tags: ['Travel', 'Important'],
       status: 'todo',
       isPinned: false,
+      energyLevel: 'low',
       estimatedPomodoros: 2,
       completedPomodoros: 0,
       subtasks: [
