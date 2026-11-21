@@ -9,6 +9,7 @@ import {
   ArrowUpDown
 } from 'lucide-react'
 import { isToday, isTomorrow, isOverdue } from '../utils/dateUtils'
+import { PRIORITY_LIST } from '../constants/taskConstants'
 
 export default function TaskList() {
   const {
@@ -71,25 +72,18 @@ export default function TaskList() {
     }
 
     if (groupBy === 'priority') {
-      const order = ['urgent', 'high', 'medium', 'low']
-      const labelMap = {
-        urgent: '🔴 Urgent Priority',
-        high: '🟠 High Priority',
-        medium: '🔵 Medium Priority',
-        low: '⚪ Low Priority'
-      }
-
-      return order
+      return PRIORITY_LIST
         .map((p) => ({
-          key: p,
-          title: labelMap[p],
-          tasks: filteredTasks.filter((t) => t.priority === p)
+          key: p.id,
+          title: p.emojiLabel,
+          tasks: filteredTasks.filter((t) => t.priority === p.id)
         }))
         .filter((g) => g.tasks.length > 0)
     }
 
     if (groupBy === 'category') {
-      return categories
+      const validCatIds = new Set(categories.map((c) => c.id))
+      const groups = categories
         .map((cat) => ({
           key: cat.id,
           title: cat.name,
@@ -97,6 +91,19 @@ export default function TaskList() {
           tasks: filteredTasks.filter((t) => t.category === cat.id)
         }))
         .filter((g) => g.tasks.length > 0)
+
+      const uncategorizedTasks = filteredTasks.filter(
+        (t) => !t.category || !validCatIds.has(t.category)
+      )
+      if (uncategorizedTasks.length > 0) {
+        groups.push({
+          key: 'uncategorized',
+          title: '📁 General / Uncategorized',
+          color: '#94a3b8',
+          tasks: uncategorizedTasks
+        })
+      }
+      return groups
     }
 
     return [{ key: 'all', title: 'All Tasks', tasks: filteredTasks }]

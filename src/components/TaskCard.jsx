@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTasks } from '../context/TaskContext'
 import {
   Check,
@@ -5,12 +6,16 @@ import {
   Pin,
   Flame,
   CheckSquare,
+  Square,
   Edit2,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { formatFriendlyDate, isOverdue, isToday, isTomorrow } from '../utils/dateUtils'
+import { PriorityBadge, CategoryBadge, EnergyBadge } from './common/Badges'
 
-export default function TaskCard({ task, isCompact = false, onDragStart }) {
+export default function TaskCard({ task, isCompact = false, onDragStart, onDragEnd }) {
   const {
     toggleTaskCompletion,
     deleteTask,
@@ -19,14 +24,13 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
     setIsPomodoroOpen,
     categories,
     selectedTaskIds,
-    toggleSelectTask
+    toggleSelectTask,
+    toggleSubtask
   } = useTasks()
 
+  const [isSubtasksExpanded, setIsSubtasksExpanded] = useState(false)
+
   const isSelected = selectedTaskIds.includes(task.id)
-  const categoryObj = categories.find((c) => c.id === task.category) || {
-    name: 'General',
-    color: '#6366f1'
-  }
 
   const subtasksCount = (task.subtasks || []).length
   const subtasksCompleted = (task.subtasks || []).filter((s) => s.completed).length
@@ -35,28 +39,6 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
   const overdue = isOverdue(task.dueDate, task.completed)
   const dueToday = isToday(task.dueDate)
   const dueTomorrow = isTomorrow(task.dueDate)
-
-  // Priority Styles
-  const priorityConfig = {
-    urgent: {
-      label: 'Urgent',
-      classes: 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
-    },
-    high: {
-      label: 'High',
-      classes: 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60'
-    },
-    medium: {
-      label: 'Medium',
-      classes: 'text-blue-700 bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/60'
-    },
-    low: {
-      label: 'Low',
-      classes: 'text-slate-600 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700'
-    }
-  }
-
-  const priorityStyle = priorityConfig[task.priority] || priorityConfig.medium
 
   const handleStartFocus = (e) => {
     e.stopPropagation()
@@ -68,6 +50,7 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
     <div
       draggable={Boolean(onDragStart)}
       onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       className={`group relative flex flex-col justify-between p-4 rounded-2xl border transition-all duration-200 ${
         task.completed
           ? 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800/60 opacity-75'
@@ -121,7 +104,7 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
         >
           <div className="flex items-center gap-2">
             <h4
-              className={`text-sm font-semibold transition-all ${
+              className={`text-sm font-semibold transition-all break-words ${
                 task.completed
                   ? 'line-through text-slate-400 dark:text-slate-500'
                   : 'text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
@@ -136,7 +119,7 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
 
           {task.description && !isCompact && (
             <p
-              className={`text-xs mt-1 line-clamp-2 leading-relaxed ${
+              className={`text-xs mt-1 line-clamp-2 leading-relaxed break-words ${
                 task.completed
                   ? 'text-slate-400 dark:text-slate-600'
                   : 'text-slate-500 dark:text-slate-400'
@@ -176,13 +159,20 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
         </div>
       </div>
 
-      {/* Subtasks Progress Bar (if task has subtasks) */}
+      {/* Subtasks Progress Bar & Interactive Checklist Toggle */}
       {subtasksCount > 0 && !isCompact && (
         <div className="mt-3 pl-12 pr-1">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 mb-1">
+          <div
+            onClick={(e) => {
+              e.stopPropagation()
+              setIsSubtasksExpanded(!isSubtasksExpanded)
+            }}
+            className="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 mb-1 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300"
+          >
             <span className="flex items-center gap-1 font-medium">
               <CheckSquare className="w-3 h-3 text-emerald-500" />
               {subtasksCompleted}/{subtasksCount} checklist
+              {isSubtasksExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </span>
             <span className="font-semibold">{Math.round(subtasksPercent)}%</span>
           </div>
@@ -192,39 +182,46 @@ export default function TaskCard({ task, isCompact = false, onDragStart }) {
               style={{ width: `${subtasksPercent}%` }}
             />
           </div>
+
+          {/* Inline Expandable Subtask Items */}
+          {isSubtasksExpanded && (
+            <div className="mt-2 space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80 animate-in fade-in">
+              {task.subtasks.map((sub) => (
+                <div
+                  key={sub.id}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleSubtask(task.id, sub.id)
+                  }}
+                  className="flex items-center gap-2 text-xs cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 py-0.5"
+                >
+                  {sub.completed ? (
+                    <CheckSquare className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <Square className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  )}
+                  <span
+                    className={`truncate ${
+                      sub.completed
+                        ? 'line-through text-slate-400 dark:text-slate-500'
+                        : 'text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    {sub.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Bottom Metadata Badges */}
       <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100/80 dark:border-slate-800/60 pl-8">
         <div className="flex flex-wrap items-center gap-1.5">
-          {/* Priority Badge */}
-          <span
-            className={`px-2 py-0.5 text-[11px] font-semibold rounded-md border ${priorityStyle.classes}`}
-          >
-            {priorityStyle.label}
-          </span>
-
-          {/* Category Pill */}
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: categoryObj.color }}
-            />
-            {categoryObj.name}
-          </span>
-
-          {/* Energy Level Badge */}
-          {task.energyLevel === 'high' && (
-            <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-md bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50">
-              ⚡ Deep Work
-            </span>
-          )}
-          {task.energyLevel === 'low' && (
-            <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50">
-              ☕ Quick Win
-            </span>
-          )}
+          <PriorityBadge priority={task.priority} />
+          <CategoryBadge categoryId={task.category} categories={categories} />
+          <EnergyBadge energyLevel={task.energyLevel} />
 
           {/* Tags */}
           {(task.tags || []).slice(0, 2).map((tag) => (

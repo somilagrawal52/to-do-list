@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useTasks } from '../context/TaskContext'
+import { PRIORITY_LIST } from '../constants/taskConstants'
 import {
   CheckCircle2,
   Clock,
@@ -18,17 +19,26 @@ export default function TaskAnalytics() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date()
       d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().slice(0, 10)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
       const label = d.toLocaleDateString(undefined, { weekday: 'short' })
 
       const completedCount = tasks.filter((t) => {
         if (!t.completedAt) return false
-        return t.completedAt.slice(0, 10) === dateStr
+        const compDate = new Date(t.completedAt)
+        if (isNaN(compDate.getTime())) return false
+        const compStr = `${compDate.getFullYear()}-${String(compDate.getMonth() + 1).padStart(2, '0')}-${String(compDate.getDate()).padStart(2, '0')}`
+        return compStr === dateStr
       }).length
 
       const createdCount = tasks.filter((t) => {
         if (!t.createdAt) return false
-        return t.createdAt.slice(0, 10) === dateStr
+        const crDate = new Date(t.createdAt)
+        if (isNaN(crDate.getTime())) return false
+        const crStr = `${crDate.getFullYear()}-${String(crDate.getMonth() + 1).padStart(2, '0')}-${String(crDate.getDate()).padStart(2, '0')}`
+        return crStr === dateStr
       }).length
 
       days.push({ dateStr, label, completedCount, createdCount })
@@ -50,12 +60,13 @@ export default function TaskAnalytics() {
     tasks.forEach((t) => {
       if (counts[t.priority] !== undefined) counts[t.priority]++
     })
-    return [
-      { key: 'urgent', label: 'Urgent', count: counts.urgent, percent: Math.round((counts.urgent / total) * 100), color: 'bg-rose-500' },
-      { key: 'high', label: 'High', count: counts.high, percent: Math.round((counts.high / total) * 100), color: 'bg-amber-500' },
-      { key: 'medium', label: 'Medium', count: counts.medium, percent: Math.round((counts.medium / total) * 100), color: 'bg-blue-500' },
-      { key: 'low', label: 'Low', count: counts.low, percent: Math.round((counts.low / total) * 100), color: 'bg-slate-400' }
-    ]
+    return PRIORITY_LIST.map((p) => ({
+      key: p.id,
+      label: p.label,
+      count: counts[p.id] || 0,
+      percent: Math.round(((counts[p.id] || 0) / total) * 100),
+      color: p.color
+    }))
   }, [tasks])
 
   // Category distribution

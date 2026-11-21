@@ -78,6 +78,10 @@ export default function TaskEisenhowerMatrix() {
     }
   }
 
+  const handleDragEnd = () => {
+    setActiveDropQuad(null)
+  }
+
   const QUAD_CONFIG = [
     {
       id: 'q1',
@@ -238,6 +242,7 @@ export default function TaskEisenhowerMatrix() {
                       task={task}
                       isCompact={true}
                       onDragStart={(e) => handleDragStart(e, task.id)}
+                      onDragEnd={handleDragEnd}
                     />
                   ))
                 )}

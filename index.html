@@ -3,12 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#4f46e5" />
-    <meta name="description" content="TaskFlow Pro - High performance, keyboard-first task manager with Kanban pipeline, interactive calendar, analytics, and Pomodoro focus timer." />
+    <meta name="description" content="TaskFlow Pro - High performance, keyboard-first task manager with Kanban pipeline, Eisenhower matrix, interactive calendar, analytics, and Pomodoro focus timer." />
     <meta property="og:title" content="TaskFlow Pro - Modern Task Management & Focus Studio" />
-    <meta property="og:description" content="Organize your work and life with customizable categories, Kanban boards, calendar agenda, Pomodoro focus mode, and data backup." />
+    <meta property="og:description" content="Organize your work and life with customizable categories, Kanban boards, Eisenhower decision matrix, calendar agenda, Pomodoro focus mode, and data backup." />
     <meta property="og:type" content="website" />
+
+    <!-- Synchronous anti-FOUC theme script to prevent white flash on reload -->
+    <script>
+      try {
+        const savedTheme = localStorage.getItem('taskflow_theme');
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        } else if (savedTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

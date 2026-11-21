@@ -7,6 +7,7 @@ class SoundEffects {
     this.ambientSource = null
     this.ambientGain = null
     this.currentAmbient = null
+    this.stopTimeout = null
   }
 
   init() {
@@ -24,7 +25,7 @@ class SoundEffects {
   setEnabled(val) {
     this.enabled = Boolean(val)
     if (!this.enabled && this.currentAmbient) {
-      this.stopAmbient()
+      this.stopAmbient(true)
     }
   }
 
@@ -163,7 +164,8 @@ class SoundEffects {
       this.init()
       if (!this.ctx) return
 
-      this.stopAmbient()
+      // Stop any existing sound immediately to prevent overlaps
+      this.stopAmbient(true)
 
       const bufferSize = this.ctx.sampleRate * 4 // 4 seconds looping buffer
       const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate)
@@ -215,7 +217,7 @@ class SoundEffects {
 
       this.ambientGain = this.ctx.createGain()
       this.ambientGain.gain.setValueAtTime(0.001, this.ctx.currentTime)
-      this.ambientGain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 1.5)
+      this.ambientGain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 1.2)
 
       noiseSource.connect(filter)
       filter.connect(this.ambientGain)
@@ -229,23 +231,47 @@ class SoundEffects {
     }
   }
 
-  stopAmbient() {
+  stopAmbient(immediate = false) {
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout)
+      this.stopTimeout = null
+    }
+
+    if (immediate) {
+      if (this.ambientSource) {
+        try {
+          this.ambientSource.stop()
+          this.ambientSource.disconnect()
+        } catch {
+          // Ignore
+        }
+        this.ambientSource = null
+      }
+      this.ambientGain = null
+      this.currentAmbient = null
+      return
+    }
+
     if (this.ambientGain && this.ctx) {
       try {
-        this.ambientGain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 0.8)
-        setTimeout(() => {
-          if (this.ambientSource) {
+        const targetSource = this.ambientSource
+        this.ambientGain.gain.linearRampToValueAtTime(0.0001, this.ctx.currentTime + 0.6)
+        this.stopTimeout = setTimeout(() => {
+          if (targetSource) {
             try {
-              this.ambientSource.stop()
-              this.ambientSource.disconnect()
+              targetSource.stop()
+              targetSource.disconnect()
             } catch {
               // Ignore
             }
-            this.ambientSource = null
           }
-          this.ambientGain = null
-          this.currentAmbient = null
-        }, 850)
+          if (this.ambientSource === targetSource) {
+            this.ambientSource = null
+            this.ambientGain = null
+            this.currentAmbient = null
+          }
+          this.stopTimeout = null
+        }, 650)
       } catch {
         this.currentAmbient = null
       }

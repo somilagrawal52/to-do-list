@@ -2,7 +2,9 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback } 
 import confetti from 'canvas-confetti'
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '../utils/storage'
 import { generateSampleTasks, DEFAULT_CATEGORIES } from '../utils/sampleData'
-import { isToday, isOverdue, isUpcoming } from '../utils/dateUtils'
+import { isToday } from '../utils/dateUtils'
+import { sanitizeTask } from '../utils/exportUtils'
+import { filterAndSortTasks, computeTaskStats } from '../utils/taskFilterUtils'
 import { useAudio } from './AudioContext'
 
 const TaskContext = createContext()
@@ -369,7 +371,7 @@ export function TaskProvider({ children }) {
 
   const importData = useCallback((importedTasks, importedCategories) => {
     if (Array.isArray(importedTasks) && importedTasks.length > 0) {
-      setTasks(importedTasks)
+      setTasks(importedTasks.map(sanitizeTask))
     }
     if (Array.isArray(importedCategories) && importedCategories.length > 0) {
       setCategories(importedCategories)
@@ -379,96 +381,12 @@ export function TaskProvider({ children }) {
 
   // Filtered & Sorted Tasks memo
   const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((task) => {
-        // Search filter
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase()
-          const matchTitle = task.title.toLowerCase().includes(q)
-          const matchDesc = (task.description || '').toLowerCase().includes(q)
-          const matchTags = (task.tags || []).some((tag) => tag.toLowerCase().includes(q))
-          if (!matchTitle && !matchDesc && !matchTags) return false
-        }
-
-        // Priority filter
-        if (selectedPriority !== 'all' && task.priority !== selectedPriority) {
-          return false
-        }
-
-        // Active sidebar / main filter
-        if (activeFilter === 'all') {
-          return true
-        }
-        if (activeFilter === 'today') {
-          return isToday(task.dueDate) || (isOverdue(task.dueDate, task.completed) && !task.completed)
-        }
-        if (activeFilter === 'upcoming') {
-          return isUpcoming(task.dueDate) || Boolean(task.dueDate && !task.completed && !isToday(task.dueDate) && !isOverdue(task.dueDate))
-        }
-        if (activeFilter === 'important') {
-          return task.priority === 'urgent' || task.priority === 'high' || task.isPinned
-        }
-        if (activeFilter === 'completed') {
-          return task.completed
-        }
-        if (activeFilter === 'energy:high') {
-          return !task.completed && (task.energyLevel === 'high' || task.priority === 'urgent')
-        }
-        if (activeFilter === 'energy:low') {
-          return !task.completed && (task.energyLevel === 'low' || (task.estimatedPomodoros <= 1 && task.priority !== 'urgent'))
-        }
-        if (activeFilter.startsWith('cat:')) {
-          const catId = activeFilter.replace('cat:', '')
-          return task.category === catId
-        }
-        if (activeFilter.startsWith('tag:')) {
-          const tagName = activeFilter.replace('tag:', '')
-          return (task.tags || []).includes(tagName)
-        }
-
-        return true
-      })
-      .sort((a, b) => {
-        // Pinned tasks always on top (except when completed)
-        if (a.isPinned !== b.isPinned) {
-          if (a.isPinned && !a.completed) return -1
-          if (b.isPinned && !b.completed) return 1
-        }
-
-        // Completed tasks push down in general list
-        if (a.completed !== b.completed) {
-          return a.completed ? 1 : -1
-        }
-
-        if (sortBy === 'dueDate') {
-          if (!a.dueDate) return 1
-          if (!b.dueDate) return -1
-          return a.dueDate.localeCompare(b.dueDate)
-        }
-        if (sortBy === 'priority') {
-          const weight = { urgent: 4, high: 3, medium: 2, low: 1 }
-          return (weight[b.priority] || 0) - (weight[a.priority] || 0)
-        }
-        if (sortBy === 'created') {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        }
-        if (sortBy === 'title') {
-          return a.title.localeCompare(b.title)
-        }
-        return 0
-      })
+    return filterAndSortTasks(tasks, { searchQuery, selectedPriority, activeFilter, sortBy })
   }, [tasks, searchQuery, selectedPriority, activeFilter, sortBy])
 
   // Aggregate stats
   const stats = useMemo(() => {
-    const total = tasks.length
-    const completed = tasks.filter((t) => t.completed).length
-    const overdue = tasks.filter((t) => isOverdue(t.dueDate, t.completed)).length
-    const dueToday = tasks.filter((t) => isToday(t.dueDate) && !t.completed).length
-    const urgent = tasks.filter((t) => (t.priority === 'urgent' || t.priority === 'high') && !t.completed).length
-    const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
-
-    return { total, completed, overdue, dueToday, urgent, completionRate }
+    return computeTaskStats(tasks)
   }, [tasks])
 
   return (

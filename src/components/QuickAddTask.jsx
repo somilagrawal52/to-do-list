@@ -3,6 +3,7 @@ import { useTasks } from '../context/TaskContext'
 import { Plus, Maximize2, Sparkles } from 'lucide-react'
 import { getTodayString, getTomorrowString } from '../utils/dateUtils'
 import { parseNaturalLanguageTask } from '../utils/nlpParser'
+import { PRIORITY_LIST } from '../constants/taskConstants'
 
 export default function QuickAddTask() {
   const { addTask, categories, setModalTask } = useTasks()
@@ -161,10 +162,11 @@ export default function QuickAddTask() {
               onChange={(e) => setPriority(e.target.value)}
               className="px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-hidden"
             >
-              <option value="urgent">🔴 Urgent Priority</option>
-              <option value="high">🟠 High Priority</option>
-              <option value="medium">🔵 Medium Priority</option>
-              <option value="low">⚪ Low Priority</option>
+              {PRIORITY_LIST.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.emojiLabel}
+                </option>
+              ))}
             </select>
 
             {/* Category Selector */}

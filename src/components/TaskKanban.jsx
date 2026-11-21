@@ -48,6 +48,11 @@ export default function TaskKanban() {
     setDraggedTaskId(null)
   }
 
+  const handleDragEnd = () => {
+    setDraggedTaskId(null)
+    setActiveOverCol(null)
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start min-h-[600px]">
       {COLUMNS.map((col) => {
@@ -112,6 +117,7 @@ export default function TaskKanban() {
                     task={task}
                     isCompact={true}
                     onDragStart={(e) => handleDragStart(e, task.id)}
+                    onDragEnd={handleDragEnd}
                   />
                 ))
               )}

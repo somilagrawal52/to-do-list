@@ -6,14 +6,32 @@ import {
   CalendarDays,
   Star,
   CheckCircle,
-  Folder,
   Plus,
-  Tag,
   Flame,
-  X,
-  Trash2
+  X
 } from 'lucide-react'
 import { isToday, isOverdue } from '../utils/dateUtils'
+
+const COLOR_PALETTE = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#64748b']
+
+const ENERGY_OPTIONS = [
+  {
+    filter: 'energy:high',
+    icon: '⚡',
+    label: 'Deep Work',
+    activeClass: 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-semibold',
+    badgeColor: 'text-purple-500',
+    predicate: (t) => !t.completed && (t.energyLevel === 'high' || t.priority === 'urgent')
+  },
+  {
+    filter: 'energy:low',
+    icon: '☕',
+    label: 'Quick Wins (<15m)',
+    activeClass: 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold',
+    badgeColor: 'text-emerald-500',
+    predicate: (t) => !t.completed && (t.energyLevel === 'low' || (t.estimatedPomodoros <= 1 && t.priority !== 'urgent'))
+  }
+]
 
 export default function Sidebar({ isOpen, onClose }) {
   const {
@@ -61,7 +79,10 @@ export default function Sidebar({ isOpen, onClose }) {
     { id: 'completed', label: 'Completed', icon: CheckCircle, count: completedCount }
   ]
 
-  const colorPalette = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#64748b']
+  const handleFilterSelect = (filterId) => {
+    setActiveFilter(filterId)
+    if (window.innerWidth < 1024) onClose()
+  }
 
   return (
     <>
@@ -104,10 +125,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => {
-                      setActiveFilter(item.id)
-                      if (window.innerWidth < 1024) onClose()
-                    }}
+                    onClick={() => handleFilterSelect(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                       isActive
                         ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold'
@@ -151,47 +169,30 @@ export default function Sidebar({ isOpen, onClose }) {
               Focus & Energy
             </span>
             <div className="mt-2 space-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveFilter(activeFilter === 'energy:high' ? 'all' : 'energy:high')
-                  if (window.innerWidth < 1024) onClose()
-                }}
-                className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                  activeFilter === 'energy:high'
-                    ? 'bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-purple-500">⚡</span>
-                  <span>Deep Work</span>
-                </div>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {tasks.filter((t) => !t.completed && (t.energyLevel === 'high' || t.priority === 'urgent')).length}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveFilter(activeFilter === 'energy:low' ? 'all' : 'energy:low')
-                  if (window.innerWidth < 1024) onClose()
-                }}
-                className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                  activeFilter === 'energy:low'
-                    ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-emerald-500">☕</span>
-                  <span>Quick Wins (&lt;15m)</span>
-                </div>
-                <span className="text-[11px] text-slate-400 font-medium">
-                  {tasks.filter((t) => !t.completed && (t.energyLevel === 'low' || (t.estimatedPomodoros <= 1 && t.priority !== 'urgent'))).length}
-                </span>
-              </button>
+              {ENERGY_OPTIONS.map((opt) => {
+                const isActive = activeFilter === opt.filter
+                const count = tasks.filter(opt.predicate).length
+                return (
+                  <button
+                    key={opt.filter}
+                    type="button"
+                    onClick={() => handleFilterSelect(isActive ? 'all' : opt.filter)}
+                    className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+                      isActive
+                        ? opt.activeClass
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={opt.badgeColor}>{opt.icon}</span>
+                      <span>{opt.label}</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -223,7 +224,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden"
                 />
                 <div className="flex items-center gap-1.5">
-                  {colorPalette.map((col) => (
+                  {COLOR_PALETTE.map((col) => (
                     <button
                       key={col}
                       type="button"
@@ -266,10 +267,7 @@ export default function Sidebar({ isOpen, onClose }) {
                   >
                     <button
                       type="button"
-                      onClick={() => {
-                        setActiveFilter(catFilterId)
-                        if (window.innerWidth < 1024) onClose()
-                      }}
+                      onClick={() => handleFilterSelect(catFilterId)}
                       className={`flex-1 flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                         isActive
                           ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold'
@@ -322,10 +320,7 @@ export default function Sidebar({ isOpen, onClose }) {
                     <button
                       key={tag}
                       type="button"
-                      onClick={() => {
-                        setActiveFilter(isActive ? 'all' : tagFilterId)
-                        if (window.innerWidth < 1024) onClose()
-                      }}
+                      onClick={() => handleFilterSelect(isActive ? 'all' : tagFilterId)}
                       className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition-all cursor-pointer ${
                         isActive
                           ? 'bg-indigo-600 text-white font-semibold'

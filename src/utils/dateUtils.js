@@ -27,30 +27,34 @@ export function getDateOffset(days) {
 }
 
 export function isToday(dateStr) {
-  if (!dateStr) return false
-  return dateStr === getTodayString()
+  if (!dateStr || typeof dateStr !== 'string') return false
+  return dateStr.slice(0, 10) === getTodayString()
 }
 
 export function isTomorrow(dateStr) {
-  if (!dateStr) return false
-  return dateStr === getTomorrowString()
+  if (!dateStr || typeof dateStr !== 'string') return false
+  return dateStr.slice(0, 10) === getTomorrowString()
 }
 
 export function isOverdue(dateStr, completed = false) {
-  if (!dateStr || completed) return false
+  if (!dateStr || completed || typeof dateStr !== 'string') return false
   const today = getTodayString()
-  return dateStr < today
+  return dateStr.slice(0, 10) < today
 }
 
 export function isUpcoming(dateStr) {
-  if (!dateStr) return false
+  if (!dateStr || typeof dateStr !== 'string') return false
   const today = getTodayString()
-  return dateStr > today
+  return dateStr.slice(0, 10) > today
 }
 
 export function isThisWeek(dateStr) {
-  if (!dateStr) return false
-  const target = new Date(dateStr + 'T00:00:00')
+  if (!dateStr || typeof dateStr !== 'string') return false
+  const parts = dateStr.slice(0, 10).split('-')
+  if (parts.length !== 3) return false
+  const target = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  if (isNaN(target.getTime())) return false
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const endOfWeek = new Date(today)
@@ -59,16 +63,18 @@ export function isThisWeek(dateStr) {
 }
 
 export function formatFriendlyDate(dateStr) {
-  if (!dateStr) return ''
-  if (isToday(dateStr)) return 'Today'
-  if (isTomorrow(dateStr)) return 'Tomorrow'
+  if (!dateStr || typeof dateStr !== 'string') return ''
+  const cleanDate = dateStr.slice(0, 10)
+  if (isToday(cleanDate)) return 'Today'
+  if (isTomorrow(cleanDate)) return 'Tomorrow'
   
   const yesterday = getDateOffset(-1)
-  if (dateStr === yesterday) return 'Yesterday'
+  if (cleanDate === yesterday) return 'Yesterday'
 
-  const parts = dateStr.split('-')
+  const parts = cleanDate.split('-')
   if (parts.length === 3) {
     const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    if (isNaN(d.getTime())) return dateStr
     const currentYear = new Date().getFullYear()
     const options = { month: 'short', day: 'numeric' }
     if (d.getFullYear() !== currentYear) {
@@ -82,6 +88,7 @@ export function formatFriendlyDate(dateStr) {
 export function formatTimeAgo(timestamp) {
   if (!timestamp) return ''
   const past = new Date(timestamp).getTime()
+  if (isNaN(past)) return ''
   const now = Date.now()
   const diffSec = Math.floor((now - past) / 1000)
 

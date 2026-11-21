@@ -8,6 +8,7 @@ import {
   Plus
 } from 'lucide-react'
 import { getTodayString } from '../utils/dateUtils'
+import { PRIORITIES } from '../constants/taskConstants'
 
 export default function TaskCalendar() {
   const { tasks, setModalTask } = useTasks()
@@ -196,11 +197,7 @@ export default function TaskCalendar() {
                       className={`w-2 h-2 rounded-full ${
                         t.completed
                           ? 'bg-emerald-400'
-                          : t.priority === 'urgent'
-                          ? 'bg-rose-500'
-                          : t.priority === 'high'
-                          ? 'bg-amber-500'
-                          : 'bg-indigo-500'
+                          : PRIORITIES[t.priority]?.color || 'bg-indigo-500'
                       }`}
                     />
                   ))}

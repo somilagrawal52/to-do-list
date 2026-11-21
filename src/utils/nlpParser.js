@@ -77,24 +77,23 @@ export function parseNaturalLanguageTask(input, existingCategories = []) {
     text = text.replace(energyMatch[0], ' ')
   }
 
-  // 4. Detect Categories (#category or #work)
-  const catRegex = /#([a-zA-Z0-9_-]+)/g
-  let match
-  while ((match = catRegex.exec(text)) !== null) {
-    const catName = match[1].toLowerCase()
+  // 4. Detect Categories and Tags (#category, #tag)
+  // Safely find all matches first without mutating the string during matching
+  const catMatches = Array.from(text.matchAll(/#([a-zA-Z0-9_-]+)/g))
+  for (const match of catMatches) {
+    const rawTag = match[1]
+    const catName = rawTag.toLowerCase()
     const foundCat = existingCategories.find(
       (c) => c.id.toLowerCase() === catName || c.name.toLowerCase().includes(catName)
     )
     if (foundCat && !category) {
       category = foundCat.id
       detectedEntities.push({ type: 'category', label: `📁 ${foundCat.name}`, value: foundCat.id })
-      text = text.replace(match[0], ' ')
-    } else {
-      // Treat as tag
-      tags.push(match[1])
-      detectedEntities.push({ type: 'tag', label: `#${match[1]}`, value: match[1] })
-      text = text.replace(match[0], ' ')
+    } else if (!tags.includes(rawTag)) {
+      tags.push(rawTag)
+      detectedEntities.push({ type: 'tag', label: `#${rawTag}`, value: rawTag })
     }
+    text = text.replace(match[0], ' ')
   }
 
   // 5. Detect Date keywords (today, tomorrow, tonight, in X days, next monday, etc.)
